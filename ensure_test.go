@@ -201,3 +201,46 @@ func TestNilErrUsingNil(t *testing.T) {
 	ensure.Nil(&c, e)
 	c.Equal(t, "ensure_test.go:202: unexpected error: foo")
 }
+
+func TestTrue(t *testing.T) {
+	var c capture
+	ensure.True(&c, false)
+	c.Equal(t, `ensure_test.go:208: expected true but got false`)
+}
+
+func TestSameElementsIntAndInterface(t *testing.T) {
+	ensure.SameElements(t, []int{1, 2}, []interface{}{2, 1})
+}
+
+func TestSameElementsLengthDifference(t *testing.T) {
+	var c capture
+	ensure.SameElements(&c, []int{1, 2}, []interface{}{1})
+	c.Equal(t, `ensure_test.go:227: expected same elements but found slices of different lengths:
+ACTUAL:
+([]int) {
+ (int) 1,
+ (int) 2
+}
+EXPECTED
+([]interface {}) {
+ (int) 1
+}`)
+}
+
+func TestSameElementsRepeated(t *testing.T) {
+	var c capture
+	ensure.SameElements(&c, []int{1, 2}, []interface{}{1, 1})
+	c.Equal(t, `ensure_test.go:245: missing expected element:
+ACTUAL:
+([]int) {
+ (int) 1,
+ (int) 2
+}
+EXPECTED:
+([]interface {}) {
+ (int) 1,
+ (int) 1
+}
+MISSING ELEMENT
+(int) 1`)
+}

@@ -172,6 +172,17 @@ func NotNil(t Fataler, v interface{}, a ...interface{}) {
 	}
 }
 
+// True ensures v is true.
+func True(t Fataler, v bool, a ...interface{}) {
+	if !v {
+		fatal(cond{
+			Fataler: t,
+			Format:  "expected true but got false",
+			Extra:   a,
+		})
+	}
+}
+
 // StringContains ensures string s contains the string substr.
 func StringContains(t Fataler, s, substr string, a ...interface{}) {
 	if !strings.Contains(s, substr) {
@@ -194,6 +205,49 @@ func StringDoesNotContain(t Fataler, s, substr string, a ...interface{}) {
 			Extra:      a,
 		})
 	}
+}
+
+// SameElements ensures the two given slices contain the same elements,
+// ignoring the order. It uses DeepEqual for element comparison.
+func SameElements(t Fataler, actual, expected interface{}, extra ...interface{}) {
+	actualSlice := toInterfaceSlice(actual)
+	expectedSlice := toInterfaceSlice(expected)
+	if len(actualSlice) != len(expectedSlice) {
+		fatal(cond{
+			Fataler:    t,
+			Format:     "expected same elements but found slices of different lengths:\nACTUAL:\n%s\nEXPECTED\n%s",
+			FormatArgs: []interface{}{tsdump(actual), tsdump(expected)},
+			Extra:      extra,
+		})
+	}
+
+	used := map[int]bool{}
+outer:
+	for _, a := range expectedSlice {
+		for i, b := range actualSlice {
+			if !used[i] && reflect.DeepEqual(a, b) {
+				used[i] = true
+				continue outer
+			}
+		}
+		fatal(cond{
+			Fataler:    t,
+			Format:     "missing expected element:\nACTUAL:\n%s\nEXPECTED:\n%s\nMISSING ELEMENT\n%s",
+			FormatArgs: []interface{}{tsdump(actual), tsdump(expected), tsdump(a)},
+			Extra:      extra,
+		})
+	}
+}
+
+// makes any slice into an []interface{}
+func toInterfaceSlice(v interface{}) []interface{} {
+	rv := reflect.ValueOf(v)
+	l := rv.Len()
+	ret := make([]interface{}, l)
+	for i := 0; i < l; i++ {
+		ret[i] = rv.Index(i).Interface()
+	}
+	return ret
 }
 
 // tsdump is Sdump without the trailing newline.
