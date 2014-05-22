@@ -65,10 +65,10 @@ func TestExtras(t *testing.T) {
 		typ{Answer: 46},
 	)
 	c.Equal(t, `ensure_test.go:76: unexpected error: foo
-(map[string]int) {
- (string) "answer": (int) 42
+(map[string]int) (len=1) {
+ (string) (len=6) "answer": (int) 42
 }
-(string) "baz"
+(string) (len=3) "baz"
 (int) 43
 (float64) 44.45
 (ensure_test.typ) {
@@ -98,10 +98,10 @@ func TestDeepEqualString(t *testing.T) {
 	ensure.DeepEqual(&c, "foo", "bar")
 	c.Equal(t, `ensure_test.go:104: expected these to be equal:
 ACTUAL:
-(string) "foo"
+(string) (len=3) "foo"
 
 EXPECTED:
-(string) "bar"`)
+(string) (len=3) "bar"`)
 }
 
 func TestNotDeepEqualStruct(t *testing.T) {
@@ -138,7 +138,7 @@ func TestUnexpectedNilErr(t *testing.T) {
 func TestNilString(t *testing.T) {
 	var c capture
 	ensure.Nil(&c, "foo")
-	c.Equal(t, "ensure_test.go:141: expected nil value but got: (string) \"foo\"")
+	c.Equal(t, "ensure_test.go:141: expected nil value but got: (string) (len=3) \"foo\"")
 }
 
 func TestNilInt(t *testing.T) {
@@ -217,12 +217,12 @@ func TestSameElementsLengthDifference(t *testing.T) {
 	ensure.SameElements(&c, []int{1, 2}, []interface{}{1})
 	c.Equal(t, `ensure_test.go:227: expected same elements but found slices of different lengths:
 ACTUAL:
-([]int) {
+([]int) (len=2 cap=2) {
  (int) 1,
  (int) 2
 }
 EXPECTED
-([]interface {}) {
+([]interface {}) (len=1 cap=1) {
  (int) 1
 }`)
 }
@@ -232,12 +232,12 @@ func TestSameElementsRepeated(t *testing.T) {
 	ensure.SameElements(&c, []int{1, 2}, []interface{}{1, 1})
 	c.Equal(t, `ensure_test.go:245: missing expected element:
 ACTUAL:
-([]int) {
+([]int) (len=2 cap=2) {
  (int) 1,
  (int) 2
 }
 EXPECTED:
-([]interface {}) {
+([]interface {}) (len=2 cap=2) {
  (int) 1,
  (int) 1
 }
