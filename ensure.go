@@ -183,6 +183,17 @@ func True(t Fataler, v bool, a ...interface{}) {
 	}
 }
 
+// False ensures v is false.
+func False(t Fataler, v bool, a ...interface{}) {
+	if v {
+		fatal(cond{
+			Fataler: t,
+			Format:  "expected false but got true",
+			Extra:   a,
+		})
+	}
+}
+
 // StringContains ensures string s contains the string substr.
 func StringContains(t Fataler, s, substr string, a ...interface{}) {
 	if !strings.Contains(s, substr) {

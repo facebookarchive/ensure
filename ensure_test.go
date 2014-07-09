@@ -244,3 +244,10 @@ EXPECTED:
 MISSING ELEMENT
 (int) 1`)
 }
+
+func TestFalse(t *testing.T) {
+	var c capture
+	ensure.False(t, false)
+	ensure.False(&c, true)
+	c.Equal(t, `ensure_test.go:252: expected false but got true`)
+}
