@@ -183,29 +183,17 @@ func TestExpectedNilErr(t *testing.T) {
 	c.Equal(t, "")
 }
 
-func indirect(f ensure.Fataler) {
-	ensure.StringContains(f, "foo", "bar")
-}
-
-func TestIndirectStackTrace(t *testing.T) {
-	var c capture
-	indirect(&c)
-	c.Equal(t, `        github.com/facebookgo/ensure/ensure_test.go:188 indirect
-github.com/facebookgo/ensure/ensure_test.go:195 TestIndirectStackTrace
-expected substring "bar" was not found in "foo"`)
-}
-
 func TestNilErrUsingNil(t *testing.T) {
 	var c capture
 	e := errors.New("foo")
 	ensure.Nil(&c, e)
-	c.Equal(t, "ensure_test.go:202: unexpected error: foo")
+	c.Equal(t, "ensure_test.go:190: unexpected error: foo")
 }
 
 func TestTrue(t *testing.T) {
 	var c capture
 	ensure.True(&c, false)
-	c.Equal(t, `ensure_test.go:208: expected true but got false`)
+	c.Equal(t, `ensure_test.go:196: expected true but got false`)
 }
 
 func TestSameElementsIntAndInterface(t *testing.T) {
@@ -215,7 +203,7 @@ func TestSameElementsIntAndInterface(t *testing.T) {
 func TestSameElementsLengthDifference(t *testing.T) {
 	var c capture
 	ensure.SameElements(&c, []int{1, 2}, []interface{}{1})
-	c.Equal(t, `ensure_test.go:227: expected same elements but found slices of different lengths:
+	c.Equal(t, `ensure_test.go:215: expected same elements but found slices of different lengths:
 ACTUAL:
 ([]int) (len=2 cap=2) {
  (int) 1,
@@ -230,7 +218,7 @@ EXPECTED
 func TestSameElementsRepeated(t *testing.T) {
 	var c capture
 	ensure.SameElements(&c, []int{1, 2}, []interface{}{1, 1})
-	c.Equal(t, `ensure_test.go:245: missing expected element:
+	c.Equal(t, `ensure_test.go:233: missing expected element:
 ACTUAL:
 ([]int) (len=2 cap=2) {
  (int) 1,
@@ -249,5 +237,5 @@ func TestFalse(t *testing.T) {
 	var c capture
 	ensure.False(t, false)
 	ensure.False(&c, true)
-	c.Equal(t, `ensure_test.go:252: expected false but got true`)
+	c.Equal(t, `ensure_test.go:240: expected false but got true`)
 }
