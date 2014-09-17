@@ -28,11 +28,12 @@ type Fataler interface {
 // cond represents a condition that wasn't satisfied, and is useful to generate
 // log messages.
 type cond struct {
-	Fataler    Fataler
-	Skip       int
-	Format     string
-	FormatArgs []interface{}
-	Extra      []interface{}
+	Fataler           Fataler
+	Skip              int
+	Format            string
+	FormatArgs        []interface{}
+	Extra             []interface{}
+	DisableDeleteSelf bool
 }
 
 // This deletes "ensure.go:xx" removing a confusing piece of information since
@@ -41,7 +42,12 @@ var deleteSelf = strings.Repeat("\b", 15)
 
 func (c cond) String() string {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "%s%s", deleteSelf, pstack(stack.Callers(c.Skip+1)))
+	if c.DisableDeleteSelf {
+		fmt.Fprint(&b, "\n")
+	} else {
+		fmt.Fprint(&b, deleteSelf)
+	}
+	fmt.Fprint(&b, pstack(stack.Callers(c.Skip+1), c.DisableDeleteSelf))
 	if c.Format != "" {
 		fmt.Fprintf(&b, c.Format, c.FormatArgs...)
 	}
@@ -197,9 +203,16 @@ func False(t Fataler, v bool, a ...interface{}) {
 // StringContains ensures string s contains the string substr.
 func StringContains(t Fataler, s, substr string, a ...interface{}) {
 	if !strings.Contains(s, substr) {
+		format := `expected substring "%s" was not found in "%s"`
+
+		// use multi line output if either string contains newlines
+		if strings.Contains(s, "\n") || strings.Contains(substr, "\n") {
+			format = "expected substring was not found:\nEXPECTED SUBSTRING:\n%s\nACTUAL:\n%s"
+		}
+
 		fatal(cond{
 			Fataler:    t,
-			Format:     `expected substring "%s" was not found in "%s"`,
+			Format:     format,
 			FormatArgs: []interface{}{substr, s},
 			Extra:      a,
 		})
@@ -250,6 +263,21 @@ outer:
 	}
 }
 
+// PanicDeepEqual ensures a panic occurs and the recovered value is DeepEqual
+// to the expected value.
+func PanicDeepEqual(t Fataler, expected interface{}, a ...interface{}) {
+	actual := recover()
+	if !reflect.DeepEqual(actual, expected) {
+		fatal(cond{
+			Fataler:           t,
+			Format:            "expected these to be equal:\nACTUAL:\n%s\nEXPECTED:\n%s",
+			FormatArgs:        []interface{}{spew.Sdump(actual), tsdump(expected)},
+			Extra:             a,
+			DisableDeleteSelf: true,
+		})
+	}
+}
+
 // makes any slice into an []interface{}
 func toInterfaceSlice(v interface{}) []interface{} {
 	rv := reflect.ValueOf(v)
@@ -267,19 +295,23 @@ func tsdump(a ...interface{}) string {
 }
 
 // pstack is the stack upto the Test function frame.
-func pstack(s stack.Stack) string {
+func pstack(s stack.Stack, skipPrefix bool) string {
 	first := s[0]
 	if isTestFrame(first) {
 		return fmt.Sprintf("%s:%d: ", filepath.Base(first.File), first.Line)
+	}
+	prefix := "        "
+	if skipPrefix {
+		prefix = ""
 	}
 	var snew stack.Stack
 	for _, f := range s {
 		snew = append(snew, f)
 		if isTestFrame(f) {
-			return "        " + snew.String() + "\n"
+			return prefix + snew.String() + "\n"
 		}
 	}
-	return "        " + s.String() + "\n"
+	return prefix + s.String() + "\n"
 }
 
 func isTestFrame(f stack.Frame) bool {
