@@ -139,6 +139,37 @@ func Subset(t Fataler, actual, subset interface{}, a ...interface{}) {
 	}
 }
 
+// DisorderedSubset attempts to find all the given subsets in the list of actuals.
+// Does not allow one actual to match more than one subset, be warray of the
+// possibility of insufficiently specific subsets.
+func DisorderedSubset(t Fataler, a, s interface{}, extra ...interface{}) {
+	actuals := toInterfaceSlice(a)
+	subsets := toInterfaceSlice(s)
+
+	used := make([]bool, len(actuals))
+	matches := 0
+	for _, subset := range subsets {
+		for i, actual := range actuals {
+			if used[i] {
+				continue
+			}
+			if subsetp.Check(subset, actual) {
+				matches++
+				used[i] = true
+				break
+			}
+		}
+	}
+	if matches != len(subsets) {
+		fatal(cond{
+			Fataler:    t,
+			Format:     "expected subsets not found:\nACTUAL:\n%s\nEXPECTED SUBSET\n%s",
+			FormatArgs: []interface{}{spew.Sdump(actuals), tsdump(subsets)},
+			Extra:      extra,
+		})
+	}
+}
+
 // Nil ensures v is nil.
 func Nil(t Fataler, v interface{}, a ...interface{}) {
 	vs := tsdump(v)
@@ -266,6 +297,9 @@ outer:
 // PanicDeepEqual ensures a panic occurs and the recovered value is DeepEqual
 // to the expected value.
 func PanicDeepEqual(t Fataler, expected interface{}, a ...interface{}) {
+	if expected == nil {
+		panic("can't pass nil to ensure.PanicDeepEqual")
+	}
 	actual := recover()
 	if !reflect.DeepEqual(actual, expected) {
 		fatal(cond{

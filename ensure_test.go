@@ -216,7 +216,8 @@ func TestFalse(t *testing.T) {
 }
 
 func TestPanicDeepEqualNil(t *testing.T) {
-	defer ensure.PanicDeepEqual(t, nil)
+	defer ensure.PanicDeepEqual(t, "can't pass nil to ensure.PanicDeepEqual")
+	ensure.PanicDeepEqual(t, nil)
 }
 
 func TestPanicDeepEqualSuccess(t *testing.T) {
@@ -230,7 +231,7 @@ func TestPanicDeepEqualFailure(t *testing.T) {
 		defer ensure.PanicDeepEqual(&c, 1)
 		panic(2)
 	}()
-	c.Contains(t, `ensure_test.go:239 TestPanicDeepEqualFailure
+	c.Contains(t, `ensure_test.go:240 TestPanicDeepEqualFailure
 expected these to be equal:
 ACTUAL:
 (int) 2
@@ -242,7 +243,7 @@ EXPECTED:
 func TestMultiLineStringContains(t *testing.T) {
 	var c capture
 	ensure.StringContains(&c, "foo\nbaz", "bar")
-	c.Equal(t, `ensure_test.go:250: expected substring was not found:
+	c.Equal(t, `ensure_test.go:251: expected substring was not found:
 EXPECTED SUBSTRING:
 bar
 ACTUAL:
