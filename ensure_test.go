@@ -231,7 +231,7 @@ func TestPanicDeepEqualFailure(t *testing.T) {
 		defer ensure.PanicDeepEqual(&c, 1)
 		panic(2)
 	}()
-	c.Contains(t, `ensure_test.go:240 TestPanicDeepEqualFailure
+	c.Contains(t, `TestPanicDeepEqualFailure
 expected these to be equal:
 ACTUAL:
 (int) 2
