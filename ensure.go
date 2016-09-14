@@ -9,6 +9,7 @@ package ensure
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -308,6 +309,20 @@ func PanicDeepEqual(t Fataler, expected interface{}, a ...interface{}) {
 			FormatArgs:        []interface{}{spew.Sdump(actual), tsdump(expected)},
 			Extra:             a,
 			DisableDeleteSelf: true,
+		})
+	}
+}
+
+// DeltaEqual ensures two given float64 values equal within passed delta.
+func DeltaEqual(t Fataler, actual, expected float64, delta float64, extra ...interface{}) {
+	if math.Abs(actual-expected) > delta {
+		format := `expected %g was not equal %g within delta %g`
+
+		fatal(cond{
+			Fataler:    t,
+			Format:     format,
+			FormatArgs: []interface{}{expected, actual, delta},
+			Extra:      extra,
 		})
 	}
 }

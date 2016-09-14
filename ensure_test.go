@@ -250,3 +250,9 @@ ACTUAL:
 foo
 baz`)
 }
+
+func TestDeltaEqual(t *testing.T) {
+	var c capture
+	ensure.DeltaEqual(&c, 1.01, 1.0, 0.001)
+	c.Equal(t, `ensure_test.go:256: expected 1 was not equal 1.01 within delta 0.001`)
+}
