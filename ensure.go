@@ -9,13 +9,11 @@ package ensure
 import (
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/facebookgo/stack"
 	subsetp "github.com/facebookgo/subset"
 )
 
@@ -25,29 +23,35 @@ type Fataler interface {
 	Fatal(a ...interface{})
 }
 
+type fatalerHelper interface {
+	Fataler
+	Helper()
+}
+
+type helperWrapper struct {
+	Fataler
+}
+
+func (helperWrapper) Helper() {}
+
+func helper(t Fataler) fatalerHelper {
+	if t, ok := t.(fatalerHelper); ok {
+		return t
+	}
+	return helperWrapper{t}
+}
+
 // cond represents a condition that wasn't satisfied, and is useful to generate
 // log messages.
 type cond struct {
-	Fataler           Fataler
-	Skip              int
-	Format            string
-	FormatArgs        []interface{}
-	Extra             []interface{}
-	DisableDeleteSelf bool
+	Fataler    Fataler
+	Format     string
+	FormatArgs []interface{}
+	Extra      []interface{}
 }
-
-// This deletes "ensure.go:xx" removing a confusing piece of information since
-// it will be an internal reference.
-var deleteSelf = strings.Repeat("\b", 15)
 
 func (c cond) String() string {
 	var b bytes.Buffer
-	if c.DisableDeleteSelf {
-		fmt.Fprint(&b, "\n")
-	} else {
-		fmt.Fprint(&b, deleteSelf)
-	}
-	fmt.Fprint(&b, pstack(stack.Callers(c.Skip+1), c.DisableDeleteSelf))
 	if c.Format != "" {
 		fmt.Fprintf(&b, c.Format, c.FormatArgs...)
 	}
@@ -58,15 +62,15 @@ func (c cond) String() string {
 	return b.String()
 }
 
-// fatal triggers the fatal and logs the cond's message. It adds 2 to Skip, to
-// skip itself as well as the caller.
+// fatal triggers the fatal and logs the cond's message.
 func fatal(c cond) {
-	c.Skip = c.Skip + 2
+	helper(c.Fataler).Helper()
 	c.Fataler.Fatal(c.String())
 }
 
 // Err ensures the error satisfies the given regular expression.
 func Err(t Fataler, err error, re *regexp.Regexp, a ...interface{}) {
+	helper(t).Helper()
 	if err == nil && re == nil {
 		return
 	}
@@ -104,6 +108,7 @@ func Err(t Fataler, err error, re *regexp.Regexp, a ...interface{}) {
 // DeepEqual ensures actual and expected are equal. It does so using
 // reflect.DeepEqual.
 func DeepEqual(t Fataler, actual, expected interface{}, a ...interface{}) {
+	helper(t).Helper()
 	if !reflect.DeepEqual(actual, expected) {
 		fatal(cond{
 			Fataler:    t,
@@ -117,6 +122,7 @@ func DeepEqual(t Fataler, actual, expected interface{}, a ...interface{}) {
 // NotDeepEqual ensures actual and expected are not equal. It does so using
 // reflect.DeepEqual.
 func NotDeepEqual(t Fataler, actual, expected interface{}, a ...interface{}) {
+	helper(t).Helper()
 	if reflect.DeepEqual(actual, expected) {
 		fatal(cond{
 			Fataler:    t,
@@ -129,6 +135,7 @@ func NotDeepEqual(t Fataler, actual, expected interface{}, a ...interface{}) {
 
 // Subset ensures actual matches subset.
 func Subset(t Fataler, actual, subset interface{}, a ...interface{}) {
+	helper(t).Helper()
 	if !subsetp.Check(subset, actual) {
 		fatal(cond{
 			Fataler:    t,
@@ -143,6 +150,7 @@ func Subset(t Fataler, actual, subset interface{}, a ...interface{}) {
 // Does not allow one actual to match more than one subset, be warray of the
 // possibility of insufficiently specific subsets.
 func DisorderedSubset(t Fataler, a, s interface{}, extra ...interface{}) {
+	helper(t).Helper()
 	actuals := toInterfaceSlice(a)
 	subsets := toInterfaceSlice(s)
 
@@ -172,6 +180,7 @@ func DisorderedSubset(t Fataler, a, s interface{}, extra ...interface{}) {
 
 // Nil ensures v is nil.
 func Nil(t Fataler, v interface{}, a ...interface{}) {
+	helper(t).Helper()
 	vs := tsdump(v)
 	sp := " "
 	if strings.Contains(vs[:len(vs)-1], "\n") {
@@ -200,6 +209,7 @@ func Nil(t Fataler, v interface{}, a ...interface{}) {
 
 // NotNil ensures v is not nil.
 func NotNil(t Fataler, v interface{}, a ...interface{}) {
+	helper(t).Helper()
 	if v == nil {
 		fatal(cond{
 			Fataler: t,
@@ -211,6 +221,7 @@ func NotNil(t Fataler, v interface{}, a ...interface{}) {
 
 // True ensures v is true.
 func True(t Fataler, v bool, a ...interface{}) {
+	helper(t).Helper()
 	if !v {
 		fatal(cond{
 			Fataler: t,
@@ -222,6 +233,7 @@ func True(t Fataler, v bool, a ...interface{}) {
 
 // False ensures v is false.
 func False(t Fataler, v bool, a ...interface{}) {
+	helper(t).Helper()
 	if v {
 		fatal(cond{
 			Fataler: t,
@@ -233,6 +245,7 @@ func False(t Fataler, v bool, a ...interface{}) {
 
 // StringContains ensures string s contains the string substr.
 func StringContains(t Fataler, s, substr string, a ...interface{}) {
+	helper(t).Helper()
 	if !strings.Contains(s, substr) {
 		format := `expected substring "%s" was not found in "%s"`
 
@@ -252,6 +265,7 @@ func StringContains(t Fataler, s, substr string, a ...interface{}) {
 
 // StringDoesNotContain ensures string s does not contain the string substr.
 func StringDoesNotContain(t Fataler, s, substr string, a ...interface{}) {
+	helper(t).Helper()
 	if strings.Contains(s, substr) {
 		fatal(cond{
 			Fataler:    t,
@@ -265,6 +279,7 @@ func StringDoesNotContain(t Fataler, s, substr string, a ...interface{}) {
 // SameElements ensures the two given slices contain the same elements,
 // ignoring the order. It uses DeepEqual for element comparison.
 func SameElements(t Fataler, actual, expected interface{}, extra ...interface{}) {
+	helper(t).Helper()
 	actualSlice := toInterfaceSlice(actual)
 	expectedSlice := toInterfaceSlice(expected)
 	if len(actualSlice) != len(expectedSlice) {
@@ -297,17 +312,17 @@ outer:
 // PanicDeepEqual ensures a panic occurs and the recovered value is DeepEqual
 // to the expected value.
 func PanicDeepEqual(t Fataler, expected interface{}, a ...interface{}) {
+	helper(t).Helper()
 	if expected == nil {
 		panic("can't pass nil to ensure.PanicDeepEqual")
 	}
 	actual := recover()
 	if !reflect.DeepEqual(actual, expected) {
 		fatal(cond{
-			Fataler:           t,
-			Format:            "expected these to be equal:\nACTUAL:\n%s\nEXPECTED:\n%s",
-			FormatArgs:        []interface{}{spew.Sdump(actual), tsdump(expected)},
-			Extra:             a,
-			DisableDeleteSelf: true,
+			Fataler:    t,
+			Format:     "expected these to be equal:\nACTUAL:\n%s\nEXPECTED:\n%s",
+			FormatArgs: []interface{}{spew.Sdump(actual), tsdump(expected)},
+			Extra:      a,
 		})
 	}
 }
@@ -326,28 +341,4 @@ func toInterfaceSlice(v interface{}) []interface{} {
 // tsdump is Sdump without the trailing newline.
 func tsdump(a ...interface{}) string {
 	return strings.TrimSpace(spew.Sdump(a...))
-}
-
-// pstack is the stack upto the Test function frame.
-func pstack(s stack.Stack, skipPrefix bool) string {
-	first := s[0]
-	if isTestFrame(first) {
-		return fmt.Sprintf("%s:%d: ", filepath.Base(first.File), first.Line)
-	}
-	prefix := "        "
-	if skipPrefix {
-		prefix = ""
-	}
-	var snew stack.Stack
-	for _, f := range s {
-		snew = append(snew, f)
-		if isTestFrame(f) {
-			return prefix + snew.String() + "\n"
-		}
-	}
-	return prefix + s.String() + "\n"
-}
-
-func isTestFrame(f stack.Frame) bool {
-	return strings.HasPrefix(f.Name, "Test")
 }
