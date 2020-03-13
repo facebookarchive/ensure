@@ -250,3 +250,12 @@ ACTUAL:
 foo
 baz`)
 }
+
+func TestNilPointer(t *testing.T) {
+	foo := func() map[string]int {
+		var m map[string]int // m == nil
+		return m
+	}
+	m := foo()
+	ensure.Nil(t, m)
+}

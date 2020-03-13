@@ -178,7 +178,7 @@ func Nil(t Fataler, v interface{}, a ...interface{}) {
 		sp = "\n"
 	}
 
-	if v != nil {
+	if v != nil && !reflect.ValueOf(v).IsNil() {
 		// Special case errors for prettier output.
 		if _, ok := v.(error); ok {
 			fatal(cond{
