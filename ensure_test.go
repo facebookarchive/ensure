@@ -123,21 +123,6 @@ func TestNotDeepEqualStruct(t *testing.T) {
 }`)
 }
 
-func TestSubsetStruct(t *testing.T) {
-	var c capture
-	Subset(&c, typ{}, typ{Answer: 42})
-	c.Equal(t, `expected subset not found:
-ACTUAL:
-(ensure.typ) {
- Answer: (int) 0
-}
-
-EXPECTED SUBSET
-(ensure.typ) {
- Answer: (int) 42
-}`)
-}
-
 func TestUnexpectedNilErr(t *testing.T) {
 	var c capture
 	Err(&c, nil, regexp.MustCompile("bar"))

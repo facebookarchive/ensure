@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	subsetp "github.com/facebookgo/subset"
 )
 
 // Fataler defines the minimal interface necessary to trigger a Fatal when a
@@ -129,51 +128,6 @@ func NotDeepEqual(t Fataler, actual, expected interface{}, a ...interface{}) {
 			Format:     "expected two different values, but got the same:\n%s",
 			FormatArgs: []interface{}{tsdump(actual)},
 			Extra:      a,
-		})
-	}
-}
-
-// Subset ensures actual matches subset.
-func Subset(t Fataler, actual, subset interface{}, a ...interface{}) {
-	helper(t).Helper()
-	if !subsetp.Check(subset, actual) {
-		fatal(cond{
-			Fataler:    t,
-			Format:     "expected subset not found:\nACTUAL:\n%s\nEXPECTED SUBSET\n%s",
-			FormatArgs: []interface{}{spew.Sdump(actual), tsdump(subset)},
-			Extra:      a,
-		})
-	}
-}
-
-// DisorderedSubset attempts to find all the given subsets in the list of actuals.
-// Does not allow one actual to match more than one subset, be warray of the
-// possibility of insufficiently specific subsets.
-func DisorderedSubset(t Fataler, a, s interface{}, extra ...interface{}) {
-	helper(t).Helper()
-	actuals := toInterfaceSlice(a)
-	subsets := toInterfaceSlice(s)
-
-	used := make([]bool, len(actuals))
-	matches := 0
-	for _, subset := range subsets {
-		for i, actual := range actuals {
-			if used[i] {
-				continue
-			}
-			if subsetp.Check(subset, actual) {
-				matches++
-				used[i] = true
-				break
-			}
-		}
-	}
-	if matches != len(subsets) {
-		fatal(cond{
-			Fataler:    t,
-			Format:     "expected subsets not found:\nACTUAL:\n%s\nEXPECTED SUBSET\n%s",
-			FormatArgs: []interface{}{spew.Sdump(actuals), tsdump(subsets)},
-			Extra:      extra,
 		})
 	}
 }
