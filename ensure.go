@@ -87,7 +87,7 @@ func Err(t Fataler, err error, re *regexp.Regexp, a ...interface{}) {
 	if err != nil && re == nil {
 		fatal(cond{
 			Fataler:    t,
-			Format:     `unexpected error: %s`,
+			Format:     `unexpected error: %+v`,
 			FormatArgs: []interface{}{err},
 			Extra:      a,
 		})
@@ -97,7 +97,7 @@ func Err(t Fataler, err error, re *regexp.Regexp, a ...interface{}) {
 	if !re.MatchString(err.Error()) {
 		fatal(cond{
 			Fataler:    t,
-			Format:     `expected error: "%s" but got "%s"`,
+			Format:     `expected error: "%s" but got "%+v"`,
 			FormatArgs: []interface{}{re, err},
 			Extra:      a,
 		})
@@ -146,7 +146,7 @@ func Nil(t Fataler, v interface{}, a ...interface{}) {
 		if _, ok := v.(error); ok {
 			fatal(cond{
 				Fataler:    t,
-				Format:     `unexpected error: %s`,
+				Format:     `unexpected error: %+v`,
 				FormatArgs: []interface{}{v},
 				Extra:      a,
 			})
